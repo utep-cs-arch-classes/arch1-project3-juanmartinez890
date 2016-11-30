@@ -28,21 +28,7 @@ AbRectOutline fieldOutline = {	/* playing field */
   {screenWidth/2 - 1, screenHeight/2 - 10}
 };
 
-
-AbRectOutline fieldOutline2 = {	/* playing field */
-  abRectOutlineGetBounds, abRectOutlineCheck,   
-  {screenWidth/2 - 30, screenHeight/2 - 50}
-};
-
-Layer fieldLayer2 = {		/* playing field as a layer */
-  (AbShape *) &fieldOutline2,
-  {screenWidth/2, screenHeight/2},/**< center */
-  {0,0}, {0,0},				    /* last & next pos */
-  COLOR_WHITE,
-  0
-};
-
-Layer layer4 = {
+Layer layer1 = {
   (AbShape *)&rect3,
   {(screenWidth/2)+0, (screenHeight/2)+65}, /**< bit below & right of center */
   {0,0}, {0,0},				    /* last & next pos */
@@ -50,7 +36,7 @@ Layer layer4 = {
   & fieldLayer2,
 };
 
-Layer layer3 = {		/**< Layer with an orange circle */
+Layer layer0 = {		/**< Layer with an orange circle */
   (AbShape *)&circle5,
   {(screenWidth/2)+10, (screenHeight/2)+5}, /**< bit below & right of center */
   {0,0}, {0,0},				    /* last & next pos */
@@ -67,21 +53,8 @@ Layer fieldLayer = {		/* playing field as a layer */
   &layer3
 };
 
-Layer layer1 = {		/**< Layer with a red square */
-  (AbShape *)&rect10,
-  {screenWidth/2, screenHeight/2}, /**< center */
-  {0,0}, {0,0},				    /* last & next pos */
-  COLOR_RED,
-  &fieldLayer,
-};
 
-Layer layer0 = {		/**< Layer with an orange circle */
-  (AbShape *)&circle14,
-  {(screenWidth/2)+10, (screenHeight/2)+5}, /**< bit below & right of center */
-  {0,0}, {0,0},				    /* last & next pos */
-  COLOR_ORANGE,
-  &layer1,
-};
+
 
 
 /** Moving Layer
