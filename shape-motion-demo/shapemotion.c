@@ -17,9 +17,9 @@
 #define GREEN_LED BIT6
 
 
-AbRect rect10 = {abRectGetBounds, abRectCheck, {10,10}}; /**< 10x10 rectangle */
-AbRect rect3 = {abRectGetBounds, abRectCheck, {10,3}}; /**< 10x10 rectangle */
-AbRect line = {abRectGetBounds, abRectCheck, {60,3}}; /**< 10x10 rectangle */
+AbRect player2Bar = {abRectGetBounds, abRectCheck, {10,3}}; /**< 10x10 rectangle */
+AbRect player1Bar = {abRectGetBounds, abRectCheck, {10,3}}; /**< 10x3 rectangle */
+AbRect middleLine = {abRectGetBounds, abRectCheck, {60,3}}; /**< 10x10 rectangle */
 
 AbRArrow rightArrow = {abRArrowGetBounds, abRArrowCheck, 150};
 
@@ -28,33 +28,19 @@ AbRectOutline fieldOutline = {	/* playing field */
   {screenWidth/2 - 1, screenHeight/2 - 10}
 };
 
-
-AbRectOutline fieldOutline2 = {	/* playing field */
-  abRectOutlineGetBounds, abRectOutlineCheck,   
-  {screenWidth/2 - 30, screenHeight/2 - 50}
-};
-
-Layer fieldLayer2 = {		/* playing field as a layer */
-  (AbShape *) &fieldOutline2,
-  {screenWidth/2, screenHeight/2},/**< center */
+Layer layer4 = {
+  (AbShape *)&player1Bar,
+  {(screenWidth/2)+0, (screenHeight/2)+65}, /**< bit below & right of center */
   {0,0}, {0,0},				    /* last & next pos */
-  COLOR_WHITE,
+  COLOR_RED,
   0
 };
 
-Layer layer4 = {
-  (AbShape *)&rect3,
-  {(screenWidth/2)+0, (screenHeight/2)+65}, /**< bit below & right of center */
+Layer layer3 = {		/**< Layer with an orange circle */
+  (AbShape *)&middleLine,
+  {(screenWidth/2), (screenHeight/2)}, /**< bit below & right of center */
   {0,0}, {0,0},				    /* last & next pos */
   COLOR_WHITE,
-  & fieldLayer2,
-};
-
-Layer layer3 = {		/**< Layer with an orange circle */
-  (AbShape *)&circle5,
-  {(screenWidth/2)+10, (screenHeight/2)+5}, /**< bit below & right of center */
-  {0,0}, {0,0},				    /* last & next pos */
-  COLOR_PINK,
   &layer4,
 };
 
@@ -68,15 +54,15 @@ Layer fieldLayer = {		/* playing field as a layer */
 };
 
 Layer layer1 = {		/**< Layer with a red square */
-  (AbShape *)&rect10,
-  {screenWidth/2, screenHeight/2}, /**< center */
+  (AbShape *)&player2Bar,
+  {screenWidth/2, screenHeight/2-65}, /**< center */
   {0,0}, {0,0},				    /* last & next pos */
-  COLOR_RED,
+  COLOR_BLUE,
   &fieldLayer,
 };
 
 Layer layer0 = {		/**< Layer with an orange circle */
-  (AbShape *)&circle14,
+  (AbShape *)&circle5,
   {(screenWidth/2)+10, (screenHeight/2)+5}, /**< bit below & right of center */
   {0,0}, {0,0},				    /* last & next pos */
   COLOR_ORANGE,
@@ -95,9 +81,10 @@ typedef struct MovLayer_s {
 } MovLayer;
 
 /* initial value of {0,0} will be overwritten */
+MovLayer ml4 = { &layer4, {2,1/64}, 0 }; /**< not all layers move */
 MovLayer ml3 = { &layer3, {1,1}, 0 }; /**< not all layers move */
-MovLayer ml1 = { &layer1, {1,2}, &ml3 }; 
-MovLayer ml0 = { &layer0, {2,1}, &ml1 }; 
+MovLayer ml1 = { &layer1, {1,1/64}, 0 }; 
+MovLayer ml0 = { &layer0, {2,1}, 0 }; 
 
 movLayerDraw(MovLayer *movLayers, Layer *layers)
 {
@@ -136,7 +123,7 @@ movLayerDraw(MovLayer *movLayers, Layer *layers)
   } // for moving layer being updated
 }	  
 
-//Region fence = {{10,30}, {SHORT_EDGE_PIXELS-10, LONG_EDGE_PIXELS-10}}; /**< Create a fence region */
+Region fence = {{0,LONG_EDGE_PIXELS}, {SHORT_EDGE_PIXELS, LONG_EDGE_PIXELS}}; /**< Create a fence region */
 
 /** Advances a moving shape within a fence
  *  
@@ -159,6 +146,30 @@ void mlAdvance(MovLayer *ml, Region *fence)
       }	/**< if outside of fence */
     } /**< for axis */
     ml->layer->posNext = newPos;
+  } /**< for ml */
+}
+
+void mlAdvance1(MovLayer *ml, MovLayer *ml1, Region *fence)
+{
+  Vec2 newPos;
+  u_char axis;
+  Region shapeBoundary;
+  Region shapeBoundary2  = {{5,5}, {SHORT_EDGE_PIXELS-10, LONG_EDGE_PIXELS-10}};//////////////////////////
+  for (; ml; ml = ml->next) {
+    vec2Add(&newPos, &ml->layer->posNext, &ml->velocity);
+    abShapeGetBounds(ml->layer->abShape, &newPos, &shapeBoundary);
+    for (axis = 0; axis < 2; axis ++) {
+      if ((shapeBoundary.topLeft.axes[axis] < fence->topLeft.axes[axis]) ||
+	  (shapeBoundary.botRight.axes[axis] > fence->botRight.axes[axis]) ) {
+	int velocity = ml->velocity.axes[axis] = -ml->velocity.axes[axis];	
+      	  int redrawScreen = 1;
+	  newPos.axes[axis] += (2*velocity);
+      }	/**< if outside of fence */
+
+      ml->layer->posNext = newPos;;
+ 
+    } /**< for axis */
+    // ml->layer->posNext = newPos;
   } /**< for ml */
 }
 
@@ -193,8 +204,17 @@ void main()
   enableWDTInterrupts();      /**< enable periodic interrupt */
   or_sr(0x8);	              /**< GIE (enable interrupts) */
 
+  drawString5x7(3, 0, "P1:", COLOR_WHITE, COLOR_BLACK);
+  drawString5x7(85, 0,"P2:", COLOR_WHITE, COLOR_BLACK);
 
-  for(;;) { 
+  for(;;) {
+    
+     u_int switches = p2sw_read(), i;
+    char str[5];
+    for (i = 0; i < 4; i++)
+       str[i] = (switches & (1<<i)) ? '-' : '0'+i;
+      str[4] = 0;
+      
     while (!redrawScreen) { /**< Pause CPU if screen doesn't need updating */
       P1OUT &= ~GREEN_LED;    /**< Green led off witHo CPU */
       or_sr(0x10);	      /**< CPU OFF */
@@ -202,6 +222,11 @@ void main()
     P1OUT |= GREEN_LED;       /**< Green led on when CPU on */
     redrawScreen = 0;
     movLayerDraw(&ml0, &layer0);
+    movLayerDraw(&ml1, &layer0);
+    movLayerDraw(&ml3, &layer0);
+    movLayerDraw(&ml4, &layer0);
+    
+
   }
 }
 
@@ -212,8 +237,11 @@ void wdt_c_handler()
   P1OUT |= GREEN_LED;		      /**< Green LED on when cpu on */
   count ++;
   if (count == 15) {
-    mlAdvance(&ml0, &fieldFence);
-    if (p2sw_read())
+    mlAdvance1(&ml0,&ml4, &fieldFence);
+    if (!p2sw_read())
+        mlAdvance(&ml4, &fence);
+        mlAdvance(&ml1, &fence);  
+
       redrawScreen = 1;
     count = 0;
   }
